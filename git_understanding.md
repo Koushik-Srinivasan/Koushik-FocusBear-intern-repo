@@ -1,45 +1,50 @@
-# Merge Conflicts & Conflict Resolution
+# Understanding git bisect
 
-## Research: what causes merge conflicts in Git
+## Research: what does `git bisect` do?
 
-A merge conflict happens when Git tries to combine two branches that have both changed the same part of a file in different ways, and Git can't automatically decide which version should win. Git is usually good at merging changes automatically when they touch different lines or different files, the conflict only comes up when both branches genuinely edited the same lines, so there's no way to guess the "correct" combined result without a human deciding.
+`git bisect` finds the exact commit that introduced a bug using binary search instead of checking every commit one by one. You tell it one commit you know is "good" (before the bug existed) and one you know is "bad" (where the bug is present), and it automatically checks out the commit halfway between them for you to test. Based on whether that midpoint is good or bad, it narrows the range in half again, repeating until only one commit is left, the one that introduced the problem.
 
 ## Test scenario
 
-I used the same `calculator.py` file from the git bisect exercise (issue #37). From `main`, I created a branch (`feature-rounding`) and edited the `add` function to round its result to 2 decimal places. Then I switched back to `main` and edited the exact same line differently, converting the result to an integer instead, and committed that on `main`. When I ran `git merge feature-rounding` back into `main`, Git couldn't reconcile the two edits to the same line and stopped with a conflict.
+I built a small test repo with 5 commits, each adding one function to a `calculator.py` file (`add`, `subtract`, `multiply`, `divide`, `power`). I deliberately introduced a bug in commit 4, where `divide(a, b)` was written as `a / b + 1` instead of just `a / b`.
 
-**What Git showed inside the file:**
+I wrote a small test script (`test_calculator.py`) that checks `divide(10, 2)` returns `5`, and exits with a non zero code if it doesn't, so `git bisect` could use it (or in my case, I ran it manually at each step) to tell good commits from bad ones.
+
+**The actual session:**
 
 ```
-def add(a, b):
-(HEAD marker) return int(a + b)
-(divider)
-(incoming branch marker) return round(a + b, 2)
+git bisect start
+git bisect bad                    # HEAD (commit 5) has the bug
+git bisect good 8ba23c8            # first commit is known good
+
+# git checks out the midpoint automatically:
+# -> Commit 3 (multiply function, divide doesn't exist yet)
+# tested it, no bug possible since divide isn't defined yet
+git bisect good
+
+# git checks out the next midpoint:
+# -> Commit 4 (divide function added)
+python3 test_calculator.py
+# FAIL: divide(10, 2) returned 6.0, expected 5
+git bisect bad
+
+# result:
+# 2aad871e... is the first bad commit
+# Commit 4: add divide function
 ```
 
-Everything between the HEAD marker and the divider is the current branch's version (main, converting to an integer), everything between the divider and the incoming branch marker is the incoming branch's version (rounding to 2 decimals). Git leaves both versions in the file and expects you to edit it down to the one final version yourself.
-
-**How I resolved it:**
-
-I edited the file directly, removed all the conflict markers, and kept the version that made more sense for a calculator function, rounding to 2 decimal places rather than truncating to a whole number, since losing precision by converting to an integer isn't the right behaviour for an `add` function:
-
-```python
-def add(a, b):
-    return round(a + b, 2)
-```
-
-Then `git add calculator.py` to mark it as resolved, and `git commit` to complete the merge. The resulting log shows both branch histories joining at a merge commit, rather than one edit simply overwriting the other.
+Out of 5 commits, `git bisect` only needed to actually test 2 of them (the midpoints) to land on the exact bad commit, rather than checking commits 2, 3, and 4 individually one at a time.
 
 ## Reflection
 
-**What caused the conflict?**
+**What does `git bisect` do?**
 
-Both `main` and my feature branch edited the exact same line of `calculator.py`, one to round the result, one to convert it to an integer, after both branches had diverged from the same starting commit. Since Git had two genuinely different versions of the same line with no way to know which one was "correct," it stopped and asked me to decide.
+It automates the process of narrowing down which commit broke something, using binary search rather than a linear commit by commit check. You just need a reliable way to tell "good" from "bad" at each step, either manually testing like I did, or automatically via `git bisect run <script>` if you have an actual test script that returns a pass/fail exit code.
 
-**How did I resolve it?**
+**When would you use it in a real world debugging situation?**
 
-By opening the file, reading both versions inside the HEAD marker, divider, and incoming branch marker, and deciding which behaviour was actually correct for the function (rounding, not truncating), rather than blindly picking one side over the other. Then staging the file and committing to finish the merge.
+Any time something that used to work stops working, and you don't know which of many recent commits caused it. It's especially useful once a project has accumulated a lot of commits since the bug was introduced, since checking each one manually would be slow, but bisect only needs roughly log2(n) tests to find it, in my 5 commit example, only 2 actual tests were needed.
 
-**What did I learn?**
+**How does it compare to manually reviewing commits?**
 
-The conflict markers themselves aren't scary once you know what they mean, they're literally just Git showing you "here's your version, here's their version, you decide." What actually matters is understanding *why* each side changed the line, not just mechanically picking one, since blindly keeping "my" version or "their" version can silently lose an intentional change someone else made for a reason. Also, conflicts only happen on the specific lines that both branches touched, not the whole file, so a lot of a merge conflict often looks scarier at first glance (a whole file marked as "both modified") than the actual number of conflicting lines really is.
+Manually reviewing means reading through the diff of each commit in order, hoping to spot the bug by eye, which is slow and easy to miss subtle issues (like my `+ 1` typo, which reads fine at a glance if you're not specifically checking the maths). `git bisect` instead relies on actually running the code and checking a real result, so it catches things that would be easy to miss by just reading a diff, and it scales much better as the number of commits between good and bad grows, since it's a binary search rather than a linear scan.
