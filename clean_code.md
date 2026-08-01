@@ -1,57 +1,59 @@
-# Clean Code: Comments & Documentation
+# Avoiding Code Duplication (DRY)
 
-## Research: best practices for comments and documentation
+## Research: DRY principle
 
-Comments should explain *why*, not *what*. Code already shows what it's doing, so a comment that just restates a line adds noise, not value. Comments earn their place explaining things code can't: a business rule, a workaround, a reason behind a non-obvious approach. Good naming often removes the need for a comment in the first place.
+"Don't Repeat Yourself" means each piece of logic should exist in one place, not copy-pasted across multiple functions. Duplication isn't just extra typing, it's extra risk: if the logic needs to change, every copy needs updating, and it's easy to miss one.
 
-## Example: poorly commented code, rewritten
+## Example: refactoring duplicated code
 
-**Before** (comments just restate each line):
-
-```python
-def calc(a, b, c):
-    # add a and b
-    x = a + b
-    # multiply x by c
-    y = x * c
-    # set discount to 0.1
-    discount = 0.1
-    # if y is greater than 100
-    if y > 100:
-        # subtract discount from y
-        y = y - (y * discount)
-    # return y
-    return y
-```
-
-Every comment repeats what the code already says, and unclear names (`calc`, `a`, `b`, `c`) mean it's still unclear what this actually calculates.
-
-**After** (renamed, comments only where they add real information):
+**Before**, three email functions each repeated the same connection/send logic:
 
 ```python
-BULK_ORDER_THRESHOLD = 100
-BULK_DISCOUNT_RATE = 0.1
+def send_welcome_email(user_name, user_email):
+    print(f"Connecting to email server...")
+    print(f"Preparing email for {user_email}")
+    subject = "Welcome to Focus Bear!"
+    body = f"Hi {user_name}, welcome aboard! We're glad to have you."
+    print(f"Subject: {subject}")
+    print(f"Body: {body}")
+    print(f"Email sent to {user_email}")
 
-def calculate_order_total(quantity, unit_price, tax_multiplier):
-    """Calculate order total, including tax and a bulk discount."""
-    subtotal = quantity + unit_price
-    total_before_discount = subtotal * tax_multiplier
-
-    # Bulk discount is a business rule from the pricing team, not obvious from the math alone.
-    if total_before_discount > BULK_ORDER_THRESHOLD:
-        total_before_discount -= total_before_discount * BULK_DISCOUNT_RATE
-
-    return total_before_discount
+def send_reminder_email(user_name, user_email):
+    print(f"Connecting to email server...")
+    print(f"Preparing email for {user_email}")
+    subject = "Don't forget your daily routine!"
+    body = f"Hi {user_name}, you haven't completed today's routine yet."
+    print(f"Subject: {subject}")
+    print(f"Body: {body}")
+    print(f"Email sent to {user_email}")
 ```
 
-Clear names made most line-by-line comments unnecessary. The one comment left explains something the code can't: that the threshold is a business decision, not an arbitrary number.
+(a third, `send_streak_broken_email`, repeated the same pattern again)
+
+**After**, the shared logic was pulled into one `send_email` function, and each specific function just supplies its own subject/body:
+
+```python
+def send_email(user_name, user_email, subject, body):
+    print(f"Connecting to email server...")
+    print(f"Preparing email for {user_email}")
+    print(f"Subject: {subject}")
+    print(f"Body: {body}")
+    print(f"Email sent to {user_email}")
+
+def send_welcome_email(user_name, user_email):
+    subject = "Welcome to Focus Bear!"
+    body = f"Hi {user_name}, welcome aboard! We're glad to have you."
+    send_email(user_name, user_email, subject, body)
+```
+
+Tested both versions, identical output.
 
 ## Reflection
 
-**When should I add comments?**
+**What were the issues with duplicated code?**
 
-When code can't explain itself: a business rule, a workaround, a non-obvious design choice, or a docstring summarizing what a function does.
+If the sending logic ever needed to change (say, adding an error check), it would need updating in three separate places, easy to miss one and leave an inconsistency behind.
 
-**When should I avoid comments and instead improve the code?**
+**How did refactoring improve maintainability?**
 
-When a comment only exists because the naming or structure is unclear. The fix there is renaming or restructuring, not documenting around confusing code. Test: if I fixed the naming, would the comment become unnecessary? If yes, fix the code instead.
+Now there's exactly one place that knows how to send an email. Each specific function only holds what's actually unique to it, the subject and body, making the duplication and the real differences both easier to see at a glance.
