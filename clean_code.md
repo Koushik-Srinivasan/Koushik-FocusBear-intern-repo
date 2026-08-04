@@ -172,3 +172,23 @@ Bugs hide more easily, since it's harder to spot when the wrong variable is used
 **How did refactoring improve code readability?**
 
 The refactored function reads almost like a sentence, "find users over threshold, using their focus minutes." No comments were even needed to explain what's happening, the names carry that on their own.
+
+---
+
+# Writing Unit Tests for Clean Code
+
+## Research and setup
+
+I chose PyTest since it's the standard testing framework for Python and has simple syntax, just `assert` statements, no boilerplate classes needed. I wrote 6 unit tests for `calculate_order_total()` (the function from the comments/documentation example earlier in this file), covering normal cases, an edge case at the exact discount threshold, rounding behaviour, and a genuine bug I found while testing.
+
+I ran them with `pytest test_calculator.py -v`, all 6 passed.
+
+## Reflection
+
+**How do unit tests help keep code clean?**
+
+Writing the tests forced me to actually think through edge cases I hadn't considered while writing the function itself, like what happens exactly at the threshold, or with a quantity of zero. Having tests also means I could refactor this function later and immediately know if I broke something, instead of only finding out when something looks wrong somewhere else much later.
+
+**What issues did you find while testing?**
+
+I found a real gap: the function doesn't validate for negative quantity or price, so `calculate_order_total(-5, 20, 1.0)` silently returns `-100.0` instead of raising an error. I wrote a test that documents this current behaviour rather than pretending it's correct, since that's an issue worth fixing (adding input validation) rather than something to just accept.
