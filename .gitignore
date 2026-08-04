@@ -1,0 +1,9 @@
+# Environment variables (never commit real credentials)
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
