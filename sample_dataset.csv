@@ -1,0 +1,6 @@
+user_id,date,focus_minutes,sessions_completed,device
+1,01-07-2026,45,2,desktop
+2,01-07-2026,60,3,mobile
+3,01-07-2026,30,1,desktop
+4,01-07-2026,90,4,mobile
+5,01-07-2026,75,3,desktop
