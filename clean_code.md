@@ -192,3 +192,68 @@ Writing the tests forced me to actually think through edge cases I hadn't consid
 **What issues did you find while testing?**
 
 I found a real gap: the function doesn't validate for negative quantity or price, so `calculate_order_total(-5, 20, 1.0)` silently returns `-100.0` instead of raising an error. I wrote a test that documents this current behaviour rather than pretending it's correct, since that's an issue worth fixing (adding input validation) rather than something to just accept.
+
+---
+
+# Refactoring Code for Simplicity
+
+## Research: common refactoring techniques
+
+The main technique I focused on was replacing deep nesting with early returns (also called "guard clauses"), handling the edge cases first and returning immediately, so the main logic isn't buried several levels deep inside `if` blocks.
+
+## Example: simplifying overly nested code
+
+**Before**, 6 levels of nested `if`/`else` to handle what's really just a few cases:
+
+```python
+def get_user_status_message(user):
+    if user is not None:
+        if "focus_minutes" in user:
+            if user["focus_minutes"] is not None:
+                if user["focus_minutes"] > 0:
+                    if user["focus_minutes"] >= 60:
+                        if user["focus_minutes"] >= 120:
+                            return "Power user today!"
+                        else:
+                            return "Great session today!"
+                    else:
+                        return "Good start today!"
+                else:
+                    return "No focus time yet today."
+            else:
+                return "No focus time yet today."
+        else:
+            return "No data available."
+    else:
+        return "No data available."
+```
+
+**After**, using early returns instead of nesting:
+
+```python
+def get_user_status_message(user):
+    if not user or "focus_minutes" not in user:
+        return "No data available."
+
+    minutes = user["focus_minutes"]
+
+    if minutes is None or minutes <= 0:
+        return "No focus time yet today."
+    if minutes >= 120:
+        return "Power user today!"
+    if minutes >= 60:
+        return "Great session today!"
+    return "Good start today!"
+```
+
+I ran both against the same 7 test cases (including missing keys, `None` values, and an empty dict), identical output both times.
+
+## Reflection
+
+**What made the original code complex?**
+
+Every condition was nested inside the previous one, so to understand the "Power user" case I had to mentally track 5 layers of `if`/`else` just to get there. Several branches also duplicated the same return value ("No focus time yet today." appeared twice, "No data available." appeared twice), which wasn't obvious until I flattened it out.
+
+**How did refactoring improve it?**
+
+The early-return version handles invalid/missing data first and exits immediately, then the remaining logic is a flat list of conditions read top to bottom, closest to how I'd actually explain the rule out loud ("if there's no data, say so; if there's no focus time, say so; otherwise check which tier they're in"). It's also shorter, and the duplicate return strings collapsed into one line each instead of two.
