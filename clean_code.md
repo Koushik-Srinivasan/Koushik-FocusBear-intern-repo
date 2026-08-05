@@ -257,3 +257,65 @@ Every condition was nested inside the previous one, so to understand the "Power 
 **How did refactoring improve it?**
 
 The early-return version handles invalid/missing data first and exits immediately, then the remaining logic is a flat list of conditions read top to bottom, closest to how I'd actually explain the rule out loud ("if there's no data, say so; if there's no focus time, say so; otherwise check which tier they're in"). It's also shorter, and the duplicate return strings collapsed into one line each instead of two.
+
+---
+
+# Handling Errors & Edge Cases
+
+## Research: strategies and guard clauses
+
+Guard clauses check for invalid input right at the top of a function and exit immediately (usually by raising a clear error) before the main logic runs. The alternative, letting bad input flow into the real logic, is how you get confusing crashes deep inside a function instead of an obvious, early explanation of what went wrong.
+
+## Example: refactoring a function with no error handling
+
+**Before**, `calculate_average_focus_minutes` had zero validation:
+
+```python
+def calculate_average_focus_minutes(sessions):
+    total = 0
+    for s in sessions:
+        total += s["focus_minutes"]
+    return total / len(sessions)
+```
+
+I tested it against 4 realistic bad inputs and it crashed on all of them, with unhelpful built-in errors:
+- Empty list -> `ZeroDivisionError: division by zero`
+- A session missing `focus_minutes` -> `KeyError: 'focus_minutes'`
+- A session with `focus_minutes: None` -> `TypeError: unsupported operand type(s) for +=`
+- `None` passed instead of a list -> `TypeError: 'NoneType' object is not iterable`
+
+None of these errors say what's actually wrong in plain terms, you'd have to go read the function to figure it out.
+
+**After**, guard clauses at the top catch each case with a specific message:
+
+```python
+def calculate_average_focus_minutes(sessions):
+    if sessions is None:
+        raise ValueError("sessions cannot be None, expected a list of session records.")
+    if not isinstance(sessions, list):
+        raise TypeError(f"sessions must be a list, got {type(sessions).__name__}.")
+    if len(sessions) == 0:
+        raise ValueError("sessions is empty, cannot calculate an average of zero sessions.")
+
+    total = 0
+    for i, session in enumerate(sessions):
+        if "focus_minutes" not in session:
+            raise KeyError(f"Session at index {i} is missing 'focus_minutes'.")
+        if session["focus_minutes"] is None:
+            raise ValueError(f"Session at index {i} has focus_minutes = None, expected a number.")
+        total += session["focus_minutes"]
+
+    return total / len(sessions)
+```
+
+I re-ran the same 4 bad inputs, each now raises a clear, specific error pointing at exactly what's wrong (including which index in the list, for the missing-key and None cases), and the normal case still returns the same result (45.0) as before.
+
+## Reflection
+
+**What was the issue with the original code?**
+
+It assumed the input would always be well formed, a non-empty list of dicts, each with a valid `focus_minutes` value, and had no checks for when that assumption didn't hold. The errors it did produce (`ZeroDivisionError`, generic `KeyError`, `TypeError`) came from deep inside Python's own mechanics rather than saying anything about what the caller actually did wrong.
+
+**How does handling errors improve reliability?**
+
+The refactored version fails fast and specifically, at the top of the function, with a message that names exactly what's invalid and where (e.g. which session index is missing data). That makes debugging much faster, since I don't have to trace a generic `TypeError` back to its root cause, the error message already tells me. It also means bad data gets caught immediately rather than silently producing a wrong result or crashing somewhere further downstream where it's harder to connect back to the original bad input.
