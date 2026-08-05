@@ -58,6 +58,89 @@ When a comment only exists because the naming or structure is unclear. The fix t
 
 ---
 
+# Writing Small, Focused Functions
+
+## Example: refactoring a long function
+
+**Before** (one function doing validation, cleaning, calculation, and formatting all at once):
+
+```python
+def process_user_report(users):
+    report_lines = []
+    total_active = 0
+    total_minutes = 0
+    for user in users:
+        if "name" not in user or "focus_minutes" not in user:
+            continue
+        if user["focus_minutes"] is None or user["focus_minutes"] < 0:
+            user["focus_minutes"] = 0
+        name = user["name"].strip().title()
+        minutes = round(user["focus_minutes"], 1)
+        is_active = minutes > 0
+        if is_active:
+            total_active += 1
+            total_minutes += minutes
+        status = "Active" if is_active else "Inactive"
+        avg_per_day = round(minutes / 7, 1) if minutes else 0
+        report_lines.append(f"{name}: {status}, {minutes} mins ({avg_per_day}/day)")
+    report_lines.append(f"Total active: {total_active}, Total minutes: {total_minutes}")
+    return "\n".join(report_lines)
+```
+
+**After** (split into small, single-purpose functions, tested to confirm identical output):
+
+```python
+def is_valid_user(user):
+    return "name" in user and "focus_minutes" in user
+
+def clean_focus_minutes(minutes):
+    if minutes is None or minutes < 0:
+        return 0
+    return round(minutes, 1)
+
+def clean_name(name):
+    return name.strip().title()
+
+def calculate_daily_average(weekly_minutes):
+    return round(weekly_minutes / 7, 1) if weekly_minutes else 0
+
+def format_user_line(name, minutes, daily_average):
+    status = "Active" if minutes > 0 else "Inactive"
+    return f"{name}: {status}, {minutes} mins ({daily_average}/day)"
+
+def build_summary_line(active_count, total_minutes):
+    return f"Total active: {active_count}, Total minutes: {total_minutes}"
+
+def process_user_report(users):
+    report_lines = []
+    total_active = 0
+    total_minutes = 0
+    for user in users:
+        if not is_valid_user(user):
+            continue
+        name = clean_name(user["name"])
+        minutes = clean_focus_minutes(user["focus_minutes"])
+        daily_average = calculate_daily_average(minutes)
+        if minutes > 0:
+            total_active += 1
+            total_minutes += minutes
+        report_lines.append(format_user_line(name, minutes, daily_average))
+    report_lines.append(build_summary_line(total_active, total_minutes))
+    return "\n".join(report_lines)
+```
+
+## Reflection
+
+**Why is breaking down functions beneficial?**
+
+Each small function's name already says what it does, so I don't need to read the body of `process_user_report` to understand its shape. Each piece is also easier to test on its own, like testing `clean_focus_minutes` for negative numbers without needing a full user list.
+
+**How did refactoring improve the structure of the code?**
+
+The original function mixed four concerns (validation, cleaning, calculation, formatting) in one block, so a bug in any one meant reading through all of them. After refactoring, `process_user_report` reads like a table of contents, one line per step, with the logic tucked into its own named function elsewhere.
+
+---
+
 # Avoiding Code Duplication (DRY)
 
 ## Research: DRY principle
@@ -319,3 +402,51 @@ It assumed the input would always be well formed, a non-empty list of dicts, eac
 **How does handling errors improve reliability?**
 
 The refactored version fails fast and specifically, at the top of the function, with a message that names exactly what's invalid and where (e.g. which session index is missing data). That makes debugging much faster, since I don't have to trace a generic `TypeError` back to its root cause, the error message already tells me. It also means bad data gets caught immediately rather than silently producing a wrong result or crashing somewhere further downstream where it's harder to connect back to the original bad input.
+
+---
+
+# Code Formatting & Style Guides
+
+## Direct answers for issue #41
+
+- **Why formatting matters:** consistent formatting removes distraction from reading code (everyone's code looks the same regardless of who wrote it), so reviewers focus on logic, not style differences.
+- **How I configured ESLint and Prettier:** installed `eslint`, `prettier`, `eslint-config-airbnb-base`, and `eslint-config-prettier`. Configured both tools' settings together in `package.json` (using its `eslintConfig` and `prettier` keys), with ESLint extending `airbnb-base` plus `prettier` (to avoid the two tools disagreeing on formatting rules).
+- **Style rules used:** Airbnb base rules (no `var`, prefer `const`/`let`, arrow functions over function expressions, no unused variables) plus Prettier's formatting (single quotes, semicolons, trailing commas, 80 character line width).
+- **What ESLint found:** 11 real problems in my test file, including a genuine bug (`goal=30` was accidentally an assignment instead of passing an argument), not just style issues like `var` usage and unused variables.
+- **Did formatting improve readability:** yes, the fixed version is flat and consistent instead of inconsistently spaced and unnecessarily nested, and the process caught an actual logic bug along the way, not just a cosmetic cleanup.
+
+## Research and setup
+
+I reviewed the Airbnb JavaScript style guide (rules like preferring `const`/`let` over `var`, arrow functions for callbacks, avoiding unused variables) and set it up for real: installed ESLint, Prettier, and `eslint-config-airbnb-base`, then configured `.eslintrc.json` to extend `airbnb-base` (with `eslint-config-prettier` to prevent formatting rule conflicts between the two tools) and a `.prettierrc.json` for consistent quote/semicolon/spacing style.
+
+## Task: running the linter and formatter on real code
+
+I wrote a deliberately messy JS file (`before_format.js`) with `var`, inconsistent spacing, unnecessary `else`, an unnamed function expression, and unused variables. Running ESLint against it found **11 real problems**:
+
+```
+1:1   error   Unexpected var, use let or const instead
+2:5   error   'userName' is assigned a value but never used
+8:9   error   Unnecessary 'else' after 'return'
+12:32 error   'goal' is not defined
+15:13 error   Unexpected function expression
+19:5  error   'unused' is assigned a value but never used
+... plus 3 warnings for console statements
+```
+
+One of these was a genuine bug, not just a style issue: `calc(focusMinutes, goal=30)` was accidentally an *assignment* (`goal = 30`) instead of passing `30` as an argument, which ESLint's `no-undef` rule caught since `goal` wasn't declared anywhere.
+
+I ran Prettier first (fixed spacing, quotes, semicolons), then `eslint --fix` (auto-fixed `var`→`const`, the unnecessary `else`, and the function expression → arrow function), then manually fixed the remaining unused variables and the actual `goal=30` bug. Final result (`after_format.js`) passes ESLint with **zero errors and zero warnings**, and I confirmed it still runs correctly with `node after_format.js`.
+
+## Reflection
+
+**Why is code formatting important?**
+
+Consistent formatting means I'm not distracted by style differences while reading code, spacing, quote style, semicolons, so I can focus on what the code actually does. It also matters for teams specifically, everyone's code looks the same regardless of who wrote it, which makes reviewing and merging changes much smoother.
+
+**What issues did the linter detect?**
+
+Beyond pure style (var vs const, spacing), ESLint caught a real bug, the `goal=30` assignment instead of argument passing, which is exactly the kind of subtle mistake that's easy to miss just reading code by eye but obvious to a tool checking for undefined variables.
+
+**Did formatting the code make it easier to read?**
+
+Yes, clearly. The before version had inconsistent spacing and unnecessary nesting that made it harder to scan; the after version is flat, consistent, and each line does one clear thing. Beyond readability, the fact that linting caught an actual logic bug (not just style) makes the case that formatting and linting aren't just cosmetic, they genuinely catch real problems.
