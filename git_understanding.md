@@ -144,3 +144,37 @@ Ran against the final file and it correctly attributed each line to the exact co
 **What surprised me while testing these commands?**
 
 Cherry-picking the fix commit onto `main` produced the exact same commit hash (`c4a7d37`) as it had on `feature-branch`, since the commit's parent, content, author, and message were all identical between the two branches at that point. I hadn't expected cherry-pick to ever produce an identical hash, I assumed it always creates a brand new commit, but it only does that when something is actually different (like a different parent commit).
+
+---
+
+# Branching & Team Collaboration
+
+## Test scenario
+
+I created a new branch (`add-changelog`) off `main`, added a new file (`CHANGELOG.md`) and committed it there. Then I switched back to `main` and confirmed the file genuinely wasn't there:
+
+```
+git checkout main
+ls
+# README.md only, CHANGELOG.md not present
+
+git log --oneline
+# e2dd9a1 Initial commit
+# (no changelog commit shown, since that commit only exists on add-changelog)
+```
+
+`main` still showed only its original single commit, the new file and commit existed exclusively on the branch until I choose to merge it.
+
+## Reflection
+
+**Why is pushing directly to `main` problematic?**
+
+`main` is usually what gets deployed or what everyone else builds on top of, so an untested or half-finished change pushed straight there affects everyone immediately, with no chance for anyone to review it first. Branches give a safe space to make and test changes without touching that shared, trusted version.
+
+**How do branches help with reviewing code?**
+
+Because a branch's changes stay isolated until merged, a pull request can show exactly what's different, and a reviewer can look at that diff, leave comments, or request changes, all before anything reaches `main`. I confirmed this practically, `main` stayed completely clean while I was actively committing on `add-changelog`, exactly the isolation that makes review possible.
+
+**What happens if two people edit the same file on different branches?**
+
+Nothing breaks until someone tries to merge both branches into `main`. If both branches touched different lines, Git usually merges them automatically without any issue. If both touched the exact same lines, that's a merge conflict (which I tested directly in issue #35), Git flags it and a person has to manually decide how to combine the two versions.
