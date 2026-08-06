@@ -178,3 +178,33 @@ Because a branch's changes stay isolated until merged, a pull request can show e
 **What happens if two people edit the same file on different branches?**
 
 Nothing breaks until someone tries to merge both branches into `main`. If both branches touched different lines, Git usually merges them automatically without any issue. If both touched the exact same lines, that's a merge conflict (which I tested directly in issue #35), Git flags it and a person has to manually decide how to combine the two versions.
+
+---
+
+# Writing Meaningful Commit Messages
+
+## Research: analyzing a real open-source project's history
+
+I looked through Facebook's React repo (`facebook/react`) commit history. What stood out most: even React's *shortest* commit messages (things like "Add ReactDOM `browser()` API" or "Clean up flag to enable microtasks in RN") stay specific and scoped to exactly what changed, never vague filler like "fix" or "update stuff". I also looked at one full, well-structured commit message in detail, which explained the bug being fixed, why it happened (with the technical reasoning), what the fix does, and how it was tested, all as separate sections. That's a good model: a short subject line for scanning history quickly, and a body that explains *why*, not just what, for anyone who needs the full context later.
+
+## Task: three real commits, three styles
+
+I made three commits in a test repo against the same file, one of each style, and confirmed all three actually appear in `git log`:
+
+1. **Vague**: `fixed stuff` — a real commit with this exact message, gives no information about what was fixed or why.
+2. **Overly detailed**: a single run-on paragraph explaining every step I took in first person, testing process included, with no structure or line breaks, technically informative but exhausting to actually read.
+3. **Well-structured**: a short subject line (`Fix ZeroDivisionError in calculate_average on empty input`) plus a body explaining the bug and the fix, following the same subject+body pattern I saw in React's history.
+
+## Reflection
+
+**What makes a good commit message?**
+
+A short, specific subject line describing what changed, plus (when the change isn't self-explanatory) a body explaining *why* it changed, not just what. Looking at React's real history confirmed this, their shortest messages were still specific, never vague, and their longer ones used the extra space to explain reasoning, not to narrate the process.
+
+**How does a clear commit message help in team collaboration?**
+
+It lets someone understand a change from `git log` alone, without needing to open every commit's full diff or ask the author directly. My well-structured commit ("Fix ZeroDivisionError...") tells a teammate exactly what bug existed and why the fix works, in a few seconds of reading.
+
+**How can poor commit messages cause issues later?**
+
+The vague one ("fixed stuff") is genuinely useless months later, there's no way to know what it actually touched without opening the diff, and if there are many commits like it, `git log` becomes useless for understanding history at a glance. The overly detailed one has the opposite problem, real information is buried in one dense paragraph, so most of it gets skipped or skimmed past. Both make tools like `git blame` (from issue #36) less useful too, since the whole point of blame is to jump straight to the commit that explains a line, and a bad message defeats that purpose even if you find the right commit.
