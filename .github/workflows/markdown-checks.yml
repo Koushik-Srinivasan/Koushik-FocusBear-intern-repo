@@ -1,0 +1,27 @@
+name: Markdown Checks
+
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+
+jobs:
+  markdown-lint-and-spellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install linting tools
+        run: npm install markdownlint-cli cspell --no-save
+
+      - name: Run markdown lint
+        run: npx markdownlint "**/*.md" --ignore node_modules
+
+      - name: Run spell check
+        run: npx cspell "**/*.md" --no-progress

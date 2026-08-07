@@ -1,31 +1,17 @@
 {
-  "name": "eslint-prettier-practice",
+  "name": "focusbear-intern-repo",
   "version": "1.0.0",
-  "description": "ESLint and Prettier config for issue #41 (Code Formatting & Style Guides)",
-  "eslintConfig": {
-    "env": {
-      "browser": true,
-      "es2021": true,
-      "node": true
-    },
-    "extends": ["airbnb-base", "prettier"],
-    "parserOptions": {
-      "ecmaVersion": "latest",
-      "sourceType": "module"
-    },
-    "rules": {}
-  },
-  "prettier": {
-    "semi": true,
-    "singleQuote": true,
-    "trailingComma": "es5",
-    "printWidth": 80
-  },
+  "description": "CI/CD static analysis setup for issue #50: markdown linting and spell checking",
   "devDependencies": {
-    "eslint": "^8.57.1",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.32.0",
-    "prettier": "^3.6.2"
+    "cspell": "^8.19.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "markdownlint-cli": "^0.42.0"
+  },
+  "lint-staged": {
+    "*.md": [
+      "markdownlint",
+      "cspell"
+    ]
   }
 }
