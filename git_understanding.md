@@ -1,23 +1,40 @@
-# Git Concepts: Staging vs. Committing
+# Creating & Reviewing Pull Requests
 
-## Test scenario
+## Research: what a PR is and why it's used
 
-I modified `notes.txt` and walked through all four steps for real:
+A Pull Request proposes a set of changes on a branch and asks for them to be reviewed before merging into the main codebase. It's the mechanism that makes code review actually happen, rather than changes going straight into `main` unreviewed.
 
-1. **Staged only** (`git add notes.txt`): `git status` showed it under "Changes to be committed", but `git log` still showed only the original commit, confirming staging alone doesn't create history.
-2. **Unstaged** (`git reset HEAD notes.txt`): `git status` moved the file back to "Changes not staged for commit". The actual file content was completely untouched, only the staging status changed.
-3. **Staged again and committed** (`git add` then `git commit`): `git status` afterward showed "nothing to commit, working tree clean", and `git log` now showed the new commit.
+## My PR: evidence
+
+- **Repo:** Koushik-FocusBear-intern-repo
+- **PR title:** Add contact info to README (#56)
+- **Branch:** `docs/add-contact-info`, merged into `main`
+- **Change made:** added contact info to README.md
+- **Linked issue:** PR description included "closes issue #39", so merging automatically closed this issue
+- **Feedback requested from:** not yet done at time of writing, still outstanding
+- **Status:** Merged (1 commit merged into `main`), and the `docs/add-contact-info` branch was deleted immediately after.
+
+## Task: reviewing a real open-source PR
+
+I reviewed [facebook/react PR #36236, "[Flight] Add more cycle protections"](https://github.com/facebook/react/pull/36236), a real, merged security fix.
+
+What I observed:
+- The PR description was one sentence, but the right one, stating the purpose plainly.
+- A size-comparison bot (`react-sizebot`) posted automated bundle-size impact before any human reviewed it.
+- Specific reviewers were requested (`gnoff` and `unstubbable`) rather than left open-ended, unlike my own PR where I hadn't requested a reviewer.
+- One approval was enough to merge, since it was a small, well-scoped fix.
+- The branch was deleted immediately after merging, same as mine.
 
 ## Reflection
 
-**What is the difference between staging and committing?**
+**Why are PRs important in a team workflow?**
 
-Staging (`git add`) marks a change as "ready to be included in the next commit", it's a holding area, not history yet. Committing (`git commit`) actually saves that staged snapshot permanently into the project's history. I confirmed this directly, the staged-only version never showed up in `git log`, only the committed version did.
+They create a checkpoint before code reaches `main`, a place for another person or automated check to catch a problem before it affects everyone. My own PR followed the mechanical shape of this (branch, change, merge, delete), though I still need to close the loop by actually getting a second person to look at it, which is the part of the process I haven't completed yet.
 
-**Why does Git separate these two steps?**
+**What makes a well-structured PR?**
 
-It lets you build a commit deliberately rather than committing every single change the moment you make it. If I've edited three files but only two of those edits are actually ready, I can stage just those two and leave the third out, so the commit reflects one intentional, complete change rather than whatever happened to be modified at that moment.
+A clear, specific description of what changed and why, even if brief, plus small, focused changes rather than a mix of unrelated edits, and linking the related issue so merging closes it automatically, which I did via "closes issue #39" in the description.
 
-**When would you want to stage changes without committing?**
+**What did I learn from reviewing an open-source PR?**
 
-When I'm partway through a change and want to check exactly what I'm about to include (via `git status` or `git diff --staged`) before finalizing it, or when I've fixed multiple unrelated things in one working session and want to stage and commit them separately, as distinct, well-scoped commits, instead of lumping everything into one.
+I hadn't thought about how much of "review" can be automated before a human ever looks at it, and that reviewers are often deliberately assigned rather than left open-ended. That's actually the gap in my own PR right now, no reviewer was requested, so the next real step for me is asking someone directly for feedback rather than treating the merge as the finish line.
