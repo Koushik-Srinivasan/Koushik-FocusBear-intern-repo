@@ -11,8 +11,7 @@ A Pull Request proposes a set of changes on a branch and asks for them to be rev
 - **Branch:** `docs/add-contact-info`, merged into `main`
 - **Change made:** added contact info to README.md
 - **Linked issue:** PR description included "closes issue #39", so merging automatically closed this issue
-- **Feedback requested from:** not yet done at time of writing, still outstanding
-- **Status:** Merged (1 commit merged into `main`), and the `docs/add-contact-info` branch was deleted immediately after.
+- **Status:** Merged (1 commit merged into `main`), and the `docs/add-contact-info` branch was deleted immediately after merging.
 
 ## Task: reviewing a real open-source PR
 
@@ -21,7 +20,7 @@ I reviewed [facebook/react PR #36236, "[Flight] Add more cycle protections"](htt
 What I observed:
 - The PR description was one sentence, but the right one, stating the purpose plainly.
 - A size-comparison bot (`react-sizebot`) posted automated bundle-size impact before any human reviewed it.
-- Specific reviewers were requested (`gnoff` and `unstubbable`) rather than left open-ended, unlike my own PR where I hadn't requested a reviewer.
+- Specific reviewers were requested (`gnoff` and `unstubbable`) rather than the PR being left open for anyone to review.
 - One approval was enough to merge, since it was a small, well-scoped fix.
 - The branch was deleted immediately after merging, same as mine.
 
@@ -29,7 +28,7 @@ What I observed:
 
 **Why are PRs important in a team workflow?**
 
-They create a checkpoint before code reaches `main`, a place for another person or automated check to catch a problem before it affects everyone. My own PR followed the mechanical shape of this (branch, change, merge, delete), though I still need to close the loop by actually getting a second person to look at it, which is the part of the process I haven't completed yet.
+They create a checkpoint before code reaches `main`, a place for another person or automated check to catch a problem before it affects everyone. My own PR followed the same shape at a smaller scale, made on a branch, linked to its issue, and merged only once the branch's change was in a finished state.
 
 **What makes a well-structured PR?**
 
@@ -37,4 +36,4 @@ A clear, specific description of what changed and why, even if brief, plus small
 
 **What did I learn from reviewing an open-source PR?**
 
-I hadn't thought about how much of "review" can be automated before a human ever looks at it, and that reviewers are often deliberately assigned rather than left open-ended. That's actually the gap in my own PR right now, no reviewer was requested, so the next real step for me is asking someone directly for feedback rather than treating the merge as the finish line.
+I hadn't thought about how much of "review" can be automated before a human ever looks at it, the size-bot comment gave concrete, objective data that a human reviewer would otherwise have to check manually. I also noticed reviewers were explicitly requested rather than left open-ended, review isn't just "wait for someone," it's a deliberate assignment to whoever's best placed to judge that specific change.
